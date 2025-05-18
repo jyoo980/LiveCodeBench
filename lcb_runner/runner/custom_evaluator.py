@@ -14,16 +14,14 @@ from lcb_runner.runner.scenario_router import (
 
 def main():
     args = get_args()
-    # TODO: assign start/end dates below, given the models we use and their
-    # respective cutoff dates.
-    args.start_date = None
-    args.end_date = None
+    args.start_date = "2025-01-01"
+    args.end_date = "2025-04-30"
 
     benchmark, _ = build_prompt_benchmark(args)
 
     with open(args.custom_output_file, "r") as f:
         custom_outputs = json.load(f)
-        assert isinstance(custom_outputs, list)
+        assert isinstance(custom_outputs, list), f"Custom output was = {custom_outputs}"
         # The assertion below fails if the # of custom outputs does not match the # of questions in the benchmark
         assert len(custom_outputs) == len(benchmark), f"{len(custom_outputs)} != {len(benchmark)}"
         if isinstance(custom_outputs[0], list):
