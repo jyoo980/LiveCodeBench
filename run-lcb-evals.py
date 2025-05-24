@@ -15,6 +15,9 @@
 # │  ├─ post-processed/
 # │  │  ├─ lcb-formatted.json
 #
+# This script produces a set of LiveCodeBench evaluation files for each
+# LiveCodeBench input file in the same directory where it is located.
+#
 # Ensure you are running this script in a directory that also contains the `data`
 # folder at the same depth.
 #
@@ -30,6 +33,15 @@ import concurrent.futures
 
 @dataclass
 class LcbModelEvaluationInfo:
+    """Represents an LLM and its LiveCodeBench input files.
+
+    Attributes:
+        model (str): An LLM.
+        lcb_input_files (list[str]): A list of `.json` files conforming to the
+            format expected by the LiveCodeBench custom evaluator.
+            See: https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation
+    """
+
     model: str
     lcb_input_files: list[str]
 
