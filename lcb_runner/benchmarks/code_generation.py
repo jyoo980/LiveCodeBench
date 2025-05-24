@@ -121,7 +121,7 @@ class CodeGenerationProblem:
         }
 
 
-def load_code_generation_dataset(release_version="release_v1", start_date=None, end_date=None) -> list[CodeGenerationProblem]:
+def load_code_generation_dataset(release_version="release_v5", start_date=None, end_date=None) -> list[CodeGenerationProblem]:
     dataset = load_dataset("livecodebench/code_generation_lite", split="test", version_tag=release_version, trust_remote_code=True)
     dataset = [CodeGenerationProblem(**p) for p in dataset]  # type: ignore
     if start_date is not None:
@@ -132,7 +132,9 @@ def load_code_generation_dataset(release_version="release_v1", start_date=None, 
         p_end_date = datetime.strptime(end_date, "%Y-%m-%d")
         dataset = [e for e in dataset if e.contest_date <= p_end_date]
 
-    print(f"Loaded {len(dataset)} problems")
+    if p_start_date and p_end_date:
+        print(f"Loaded {len(dataset)} problems, given start_date = {p_start_date} and end_date = {p_end_date}")
+
     return dataset
 
 
