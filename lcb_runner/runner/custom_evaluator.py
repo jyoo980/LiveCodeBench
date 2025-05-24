@@ -14,12 +14,15 @@ from lcb_runner.runner.scenario_router import (
 
 def main():
     args = get_args()
+    args.start_date = "2025-01-01"
+    args.end_date = "2025-04-30"
 
     benchmark, _ = build_prompt_benchmark(args)
 
     with open(args.custom_output_file, "r") as f:
         custom_outputs = json.load(f)
-        assert isinstance(custom_outputs, list)
+        assert isinstance(custom_outputs, list), f"Custom output was = {custom_outputs}"
+        # The assertion below fails if the # of custom outputs does not match the # of questions in the benchmark
         assert len(custom_outputs) == len(benchmark), f"{len(custom_outputs)} != {len(benchmark)}"
         if isinstance(custom_outputs[0], list):
             ## custom outputs must list[list[str]]
@@ -74,26 +77,15 @@ def main():
     metrics = get_metrics(args.scenario, args, benchmark, combined_results)
     graded = extract_instance_results(metrics[1])
 
-    if args.scenario == Scenario.codegeneration:
-        metadatas = metrics[2]
-        save_eval_results = [
-            instance.insert_output_evaluation(
-                outputs_list, extracted_list, graded_list, metadata=meta
-            )
-            for instance, (outputs_list, extracted_list), graded_list, meta in zip(
-                benchmark, combined_results, graded, metadatas
-            )
-        ]
-    else:
-        save_eval_results = [
-            instance.insert_output_evaluation(
-                outputs_list, extracted_list, graded_list
-            )
-            for instance, (outputs_list, extracted_list), graded_list in zip(
-                benchmark, combined_results, graded
-            )
-        ]
-    
+    metadatas = metrics[2]
+    save_eval_results = [
+        instance.insert_output_evaluation(
+            outputs_list, extracted_list, graded_list, metadata=meta
+        )
+        for instance, (outputs_list, extracted_list), graded_list, meta in zip(
+            benchmark, combined_results, graded, metadatas
+        )
+    ]
 
     if args.custom_output_save_name is None:
         output_path = args.custom_output_file[:-5] + f"_{args.scenario.value}_output.json"
