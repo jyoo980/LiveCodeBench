@@ -57,7 +57,9 @@ def main() -> None:
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(MODELS)) as executor:
         future_to_model = {
-            executor.submit(_run_lcb, lcb_evaluation_info): lcb_evaluation_info.model
+            executor.submit(
+                _run_lcb_for_model, lcb_evaluation_info
+            ): lcb_evaluation_info.model
             for lcb_evaluation_info in model_evaluation_infos
         }
 
@@ -82,24 +84,45 @@ MODELS = [
 ]
 
 
-def _run_lcb(model_eval_info: LcbModelEvaluationInfo) -> None:
+def _run_lcb_for_model(model_eval_info: LcbModelEvaluationInfo) -> None:
     """Run the LiveCodeBench custom evaluator given LiveCodeBench model evaluation
     information.
 
     Args:
         model_eval_info (LcbModelEvaluationInfo): The LiveCodeBench model evaluation
-        information.
+            information.
     """
-    print(f"Running LiveCodeBench for: {model_eval_info.model}")
-    for lcb_input_file in model_eval_info.lcb_input_files:
-        run_lcb_for_model = f"python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file}"
-        subprocess.run(
-            run_lcb_for_model,
-            shell=True,
-            check=True,
-            capture_output=True,
-            encoding="utf-8",
-        )
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        future_to_lcb_input_file = {
+            executor.submit(_run_lcb_for_input_file, lcb_input_file): lcb_input_file
+            for lcb_input_file in model_eval_info.lcb_input_files
+        }
+
+        for future in concurrent.futures.as_completed(future_to_lcb_input_file):
+            lcb_input_file = future_to_lcb_input_file[future]
+            try:
+                future.result()
+            except Exception as e:
+                print(
+                    f"LiveCodeBench run for model: {model_eval_info.model}, input file: {lcb_input_file} raised an exception: {str(e)}"
+                )
+
+
+def _run_lcb_for_input_file(lcb_input_file: str) -> None:
+    """Run the LiveCodeBench custom evaluator for the given input file.
+
+    Args:
+        input_file (str): The input file for which to run the LiveCodeBench
+            custom evaluator.
+    """
+    cmd_to_run_lcb_for_input_file = f"python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file}"
+    subprocess.run(
+        cmd_to_run_lcb_for_input_file,
+        shell=True,
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
 
 
 if __name__ == "__main__":
