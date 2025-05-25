@@ -92,20 +92,25 @@ def _run_lcb_for_model(model_eval_info: LcbModelEvaluationInfo) -> None:
         model_eval_info (LcbModelEvaluationInfo): The LiveCodeBench model evaluation
             information.
     """
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        future_to_lcb_input_file = {
-            executor.submit(_run_lcb_for_input_file, lcb_input_file): lcb_input_file
-            for lcb_input_file in model_eval_info.lcb_input_files
-        }
+    run_parallel_within_models = False
+    if not run_parallel_within_models:
+        for lcb_input_file in model_eval_info.lcb_input_files:
+            _run_lcb_for_input_file(lcb_input_file)
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_lcb_input_file = {
+                executor.submit(_run_lcb_for_input_file, lcb_input_file): lcb_input_file
+                for lcb_input_file in model_eval_info.lcb_input_files
+            }
 
-        for future in concurrent.futures.as_completed(future_to_lcb_input_file):
-            lcb_input_file = future_to_lcb_input_file[future]
-            try:
-                future.result()
-            except Exception as e:
-                print(
-                    f"LiveCodeBench run for model: {model_eval_info.model}, input file: {lcb_input_file} raised an exception: {str(e)}"
-                )
+            for future in concurrent.futures.as_completed(future_to_lcb_input_file):
+                lcb_input_file = future_to_lcb_input_file[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    print(
+                        f"LiveCodeBench run for model: {model_eval_info.model}, input file: {lcb_input_file} raised an exception: {str(e)}"
+                    )
 
 
 def _run_lcb_for_input_file(lcb_input_file: str) -> None:
