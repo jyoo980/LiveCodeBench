@@ -3,17 +3,17 @@
 # This script runs the LiveCodeBench custom evaluator for each of the models
 # listed in `MODELS`.
 #
-# It assumes that post-processed data in the format expected by the LiveCodeBench
-# custom evaluator: https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation)
-# is stored in the following directory structure:
+# It assumes that input files (code in the format expected by the LiveCodeBench custom evaluator:
+# https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation) is stored
+# in the following directory structure:
 #
 # data/
 # ├─ gpt-4.1-2025-04-14/
-# │  ├─ post-processed/
-# │  │  ├─ lcb-formatted.json
+# │  └─ post-processed/
+# │     └─ lcb-formatted.json
 # ├─ Llama-3.3-70B-Instruct/
-# │  ├─ post-processed/
-# │  │  ├─ lcb-formatted.json
+# │  └─ post-processed/
+# │     └─ lcb-formatted.json
 #
 # This script produces a set of LiveCodeBench evaluation files for each
 # LiveCodeBench input file in the same directory where it is located.
@@ -29,6 +29,18 @@ from dataclasses import dataclass
 import glob
 import subprocess
 import concurrent.futures
+
+
+MODELS = [
+    "claude-3-7-sonnet-20250219",
+    "codellama-70b",
+    "Codestral-2501",
+    "DeepSeek-R1",
+    "DeepSeek-V3",
+    "gpt-4.1-2025-04-14",
+    "Llama-3.3-70B-Instruct",
+    "qwen-2.5-coder",
+]
 
 
 @dataclass
@@ -69,20 +81,10 @@ def main() -> None:
                 future.result()
             except Exception as e:
                 print(
-                    f"LiveCodeBench run for model: {model} raised an exception: {str(e)}"
+                    f"LiveCodeBench run for {model} raised: {str(e)}"
                 )
 
 
-MODELS = [
-    "claude-3-7-sonnet-20250219",
-    "codellama-70b",
-    "Codestral-2501",
-    "DeepSeek-R1",
-    "DeepSeek-V3",
-    "gpt-4.1-2025-04-14",
-    "Llama-3.3-70B-Instruct",
-    "qwen-2.5-coder",
-]
 
 
 def _run_lcb_for_model(model_eval_info: LcbModelEvaluationInfo) -> None:
