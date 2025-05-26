@@ -79,9 +79,7 @@ def main() -> None:
                 LcbModelEvaluationInfo(
                     model=model,
                     lcb_input_file_path=lcb_input_file,
-                    lcb_output_file=_get_lcb_output_file(
-                        lcb_input_file
-                    ),
+                    lcb_output_file=_get_lcb_output_file(lcb_input_file),
                 )
             )
 
