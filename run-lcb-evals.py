@@ -48,14 +48,14 @@ class LcbModelEvaluationInfo:
 
 def main() -> None:
     model_to_lcb_input_files: dict[str, list[str]] = {
-        model: glob.glob(f"data/{model}/post-processed/*.json") for model in MODELS
+        model: glob.glob(f"data/{model}/post-processed/*lcb-formatted.json") for model in MODELS
     }
     model_evaluation_infos: list[LcbModelEvaluationInfo] = [
         LcbModelEvaluationInfo(model=model, lcb_input_files=lcb_inputs)
         for model, lcb_inputs in model_to_lcb_input_files.items()
     ]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(MODELS)) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         future_to_model = {
             executor.submit(
                 _run_lcb_for_model, lcb_evaluation_info
