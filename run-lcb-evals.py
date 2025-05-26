@@ -52,8 +52,7 @@ class LcbModelEvaluationInfo:
         model (str): An LLM.
         lcb_input_file (str): A path to a `.json` file conforming to the format
             expected by the LiveCodeBench custom evaluator, which is detailed
-            here: https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation
-
+            here: https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation.
         expected_lcb_input_file_path (str): A path to a `.json` file that should be produced by
             the LiveCodeBench custom evaluator upon a non-exceptional evaluation run.
 
@@ -135,7 +134,7 @@ def _get_lcb_input_files_for_model(model: str) -> list[str]:
     return glob.glob(f"data/{model}/post-processed/*lcb-formatted.json")
 
 
-def _get_expected_lcb_output_file(lcb_input_file: str) -> list[str]:
+def _get_expected_lcb_output_file(lcb_input_file: str) -> str:
     """Return the expected path to the corresponding LiveCodeBench output file.
 
     Args:
