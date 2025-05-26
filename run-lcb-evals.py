@@ -45,75 +45,48 @@ MODELS = [
 
 @dataclass
 class LcbModelEvaluationInfo:
-    """Represents an LLM and its LiveCodeBench input files.
+    """Represents an LLM and a LiveCodeBench input file.
 
     Attributes:
         model (str): An LLM.
-        lcb_input_files (list[str]): A list of `.json` files conforming to the
-            format expected by the LiveCodeBench custom evaluator.
+        lcb_input_file (str): A path to a `.json` file conforming to the format
+            expected by the LiveCodeBench custom evaluator.
+
             See: https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation
     """
 
     model: str
-    lcb_input_files: list[str]
+    lcb_input_file_path: str
 
 
 def main() -> None:
     model_to_lcb_input_files: dict[str, list[str]] = {
-        model: glob.glob(f"data/{model}/post-processed/*lcb-formatted.json") for model in MODELS
+        model: glob.glob(f"data/{model}/post-processed/*lcb-formatted.json")
+        for model in MODELS
     }
-    model_evaluation_infos: list[LcbModelEvaluationInfo] = [
-        LcbModelEvaluationInfo(model=model, lcb_input_files=lcb_inputs)
-        for model, lcb_inputs in model_to_lcb_input_files.items()
-    ]
+    model_evaluation_infos: list[LcbModelEvaluationInfo] = []
+    for lcb_input, lcb_input_files in model_to_lcb_input_files.items():
+        for lcb_input_file in lcb_input_files:
+            model_evaluation_infos.append(
+                LcbModelEvaluationInfo(
+                    model=lcb_input, lcb_input_file_path=lcb_input_file
+                )
+            )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        future_to_model = {
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_lcb_input = {
             executor.submit(
-                _run_lcb_for_model, lcb_evaluation_info
-            ): lcb_evaluation_info.model
+                _run_lcb_for_input_file, lcb_evaluation_info
+            ): lcb_evaluation_info.lcb_input_file_path
             for lcb_evaluation_info in model_evaluation_infos
         }
 
-        for future in concurrent.futures.as_completed(future_to_model):
-            model = future_to_model[future]
+        for future in concurrent.futures.as_completed(future_to_lcb_input):
+            lcb_input = future_to_lcb_input[future]
             try:
                 future.result()
             except Exception as e:
-                print(
-                    f"LiveCodeBench run for {model} raised: {str(e)}"
-                )
-
-
-
-
-def _run_lcb_for_model(model_eval_info: LcbModelEvaluationInfo) -> None:
-    """Run the LiveCodeBench custom evaluator given LiveCodeBench model evaluation
-    information.
-
-    Args:
-        model_eval_info (LcbModelEvaluationInfo): The LiveCodeBench model evaluation
-            information.
-    """
-    run_parallel_within_models = False
-    if not run_parallel_within_models:
-        for lcb_input_file in model_eval_info.lcb_input_files:
-            _run_lcb_for_input_file(lcb_input_file)
-    else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_lcb_input_file = {
-                executor.submit(_run_lcb_for_input_file, lcb_input_file): lcb_input_file
-                for lcb_input_file in model_eval_info.lcb_input_files
-            }
-
-            for future in concurrent.futures.as_completed(future_to_lcb_input_file):
-                lcb_input_file = future_to_lcb_input_file[future]
-                try:
-                    future.result()
-                except Exception as e:
-                    print(
-                        f"LiveCodeBench run for model: {model_eval_info.model}, input file: {lcb_input_file} raised an exception: {str(e)}"
-                    )
+                print(f"LiveCodeBench run for {lcb_input} raised: {str(e)}")
 
 
 def _run_lcb_for_input_file(lcb_input_file: str) -> None:
