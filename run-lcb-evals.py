@@ -3,9 +3,10 @@
 # This script runs the LiveCodeBench custom evaluator for each of the models
 # listed in `MODELS`.
 #
+# INPUT:
 # It assumes that input files (code in the format expected by the LiveCodeBench custom evaluator:
 # https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation) is stored
-# in the following directory structure:
+# in the following directory structure, where `data/` is a subdirectory of the working directory.
 #
 # data/
 # ├─ gpt-4.1-2025-04-14/
@@ -15,11 +16,9 @@
 # │  └─ post-processed/
 # │     └─ lcb-formatted.json
 #
+# OUTPUT:
 # This script produces a set of LiveCodeBench evaluation files for each
 # LiveCodeBench input file in the same directory where it is located.
-#
-# Ensure you are running this script in a directory that also contains the `data`
-# folder at the same depth.
 #
 # Example usage:
 #   ./run-lcb-evals.py
@@ -50,17 +49,17 @@ class LcbModelEvaluationInfo:
 
     Attributes:
         model (str): An LLM.
-        lcb_input_file (str): A path to a `.json` file conforming to the format
-            expected by the LiveCodeBench custom evaluator, which is detailed
-            here: https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation.
-        expected_lcb_input_file_path (str): A path to a `.json` file that should be produced by
+        lcb_input_file (str): A path to a `.json` input file for the LiveCodeBench custom
+            evaluator, which is detailed here:
+            https://github.com/LiveCodeBench/LiveCodeBench?tab=readme-ov-file#custom-evaluation.
+        lcb_output_file (str): A path to a `.json` file that should be produced by
             the LiveCodeBench custom evaluator upon a non-exceptional evaluation run.
 
     """
 
     model: str
     lcb_input_file_path: str
-    expected_lcb_output_file_path: str
+    lcb_output_file: str
 
     def __iter__(self) -> Iterator[str]:
         return (getattr(self, field.name) for field in fields(self))
@@ -71,7 +70,7 @@ def main() -> None:
         "No 'data' folder exists to look for LiveCodeBench input files."
     )
     model_to_lcb_input_files: dict[str, list[str]] = {
-        model: _get_lcb_input_files_for_model(model) for model in MODELS
+        model: _get_lcb_input_files(model) for model in MODELS
     }
     model_evaluation_infos: list[LcbModelEvaluationInfo] = []
     for model, lcb_input_files in model_to_lcb_input_files.items():
@@ -80,7 +79,7 @@ def main() -> None:
                 LcbModelEvaluationInfo(
                     model=model,
                     lcb_input_file_path=lcb_input_file,
-                    expected_lcb_output_file_path=_get_expected_lcb_output_file(
+                    lcb_output_file=_get_lcb_output_file(
                         lcb_input_file
                     ),
                 )
@@ -89,7 +88,7 @@ def main() -> None:
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future_to_lcb_input = {
             executor.submit(
-                _run_lcb_for_input_file, lcb_evaluation_info.lcb_input_file_path
+                _lcb_evaluate, lcb_evaluation_info.lcb_input_file_path
             ): lcb_evaluation_info.lcb_input_file_path
             for lcb_evaluation_info in model_evaluation_infos
         }
@@ -104,26 +103,26 @@ def main() -> None:
     _check_lcb_evaluation_completeness(model_evaluation_infos)
 
 
-def _run_lcb_for_input_file(lcb_input_file: str) -> None:
+def _lcb_evaluate(lcb_input_file: str) -> None:
     """Run the LiveCodeBench custom evaluator for the given input file.
 
     Args:
         input_file (str): The input file for which to run the LiveCodeBench
             custom evaluator.
     """
-    cmd_to_run_lcb_for_input_file = f"python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file}"
+    lcb_evaluate_cmd = f"python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file}"
     subprocess.run(
-        cmd_to_run_lcb_for_input_file,
+        lcb_evaluate_cmd,
         shell=True,
         check=True,
         capture_output=True,
         encoding="utf-8",
     )
-    print(f"Finished running: {cmd_to_run_lcb_for_input_file}")
+    print(f"Finished running: {lcb_evaluate_cmd}")
 
 
-def _get_lcb_input_files_for_model(model: str) -> list[str]:
-    """Return the paths to the LiveCodeBench input files for the given model.
+def _get_lcb_input_files(model: str) -> list[str]:
+    """Return the paths to existing LiveCodeBench input files for the given model.
 
     Args:
         model (str): The model.
@@ -134,14 +133,14 @@ def _get_lcb_input_files_for_model(model: str) -> list[str]:
     return glob.glob(f"data/{model}/post-processed/*lcb-formatted.json")
 
 
-def _get_expected_lcb_output_file(lcb_input_file: str) -> str:
-    """Return the expected path to the corresponding LiveCodeBench output file.
+def _get_lcb_output_file(lcb_input_file: str) -> str:
+    """Return the path to the corresponding LiveCodeBench output file.
 
     Args:
         lcb_input_file (str): The LiveCodeBench input file.
 
     Returns:
-        The expected path to the corresponding LiveCodeBench output file.
+        The path to the corresponding LiveCodeBench output file.
     """
     lcb_input_file_without_extension, *_ = lcb_input_file.split(".json")
     LCB_OUTPUT_FILE_SUFFIX = "codegeneration_output_eval_all.json"
@@ -160,9 +159,9 @@ def _check_lcb_evaluation_completeness(
         model_evaluation_infos (list[LcbModelEvaluationInfo]): A list of model
             evaluation information.
     """
-    for _, lcb_input_file_path, expected_lcb_output_file_path in model_evaluation_infos:
-        if not Path(expected_lcb_output_file_path).is_file():
-            print(f"Missing LiveCodeBench output file: {expected_lcb_output_file_path}")
+    for _, lcb_input_file_path, lcb_output_file in model_evaluation_infos:
+        if not Path(lcb_output_file).is_file():
+            print(f"Missing LiveCodeBench output file: {lcb_output_file}")
             print(
                 f"Re-run 'python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file_path}'"
             )

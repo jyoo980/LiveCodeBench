@@ -1,7 +1,7 @@
 default: style-fix style-check
 
 style-fix: python-style-fix
-style-check: python-style-check
+style-check: python-style-check python-typecheck
 
 PYTHON_FILES:=$(wildcard *.py)
 PYTHON_FILES_TO_CHECK:=$(filter-out ${lcb_runner},${PYTHON_FILES})
