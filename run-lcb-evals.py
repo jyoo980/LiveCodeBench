@@ -162,7 +162,7 @@ def _check_lcb_evaluation_completeness(
             evaluation information.
     """
     for _, lcb_input_file_path, expected_lcb_output_file_path in model_evaluation_infos:
-        if not Path(expected_lcb_output_file_path).is_dir():
+        if not Path(expected_lcb_output_file_path).is_file():
             print(f"Missing LiveCodeBench output file: {expected_lcb_output_file_path}")
             print(
                 f"Re-run 'python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file_path}'"
