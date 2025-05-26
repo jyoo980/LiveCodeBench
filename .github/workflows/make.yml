@@ -1,0 +1,27 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        show-progress: false
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13.3'
+    - run: python --version
+    - name: Install Python programs
+      run: pip install ruff
+    - name: Install shellcheck and checkbashisms
+      run: |
+        sudo apt update
+        sudo apt install shfmt shellcheck devscripts
+    - name: Code style
+      run: make style-check
