@@ -74,6 +74,7 @@ def main() -> None:
 
 
 MODELS = [
+    "claude-3-7-sonnet-20250219",
     "codellama-70b",
     "Codestral-2501",
     "DeepSeek-R1",
