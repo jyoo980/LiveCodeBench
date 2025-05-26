@@ -76,7 +76,7 @@ def main() -> None:
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future_to_lcb_input = {
             executor.submit(
-                _run_lcb_for_input_file, lcb_evaluation_info
+                _run_lcb_for_input_file, lcb_evaluation_info.lcb_input_file_path
             ): lcb_evaluation_info.lcb_input_file_path
             for lcb_evaluation_info in model_evaluation_infos
         }
@@ -97,6 +97,7 @@ def _run_lcb_for_input_file(lcb_input_file: str) -> None:
             custom evaluator.
     """
     cmd_to_run_lcb_for_input_file = f"python -m lcb_runner.runner.custom_evaluator --custom_output_file {lcb_input_file}"
+    print(f"Running: {cmd_to_run_lcb_for_input_file}")
     subprocess.run(
         cmd_to_run_lcb_for_input_file,
         shell=True,
